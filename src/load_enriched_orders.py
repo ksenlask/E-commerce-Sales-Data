@@ -1,6 +1,6 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, round
-from src.data_cleaning_utils import clean_orders_for_enrichment, clean_customers_for_enrichment, clean_products_for_enrichment
+from data_cleaning_utils import clean_orders_for_enrichment, clean_customers_for_enrichment, clean_products_for_enrichment
 
 def create_enriched_orders_table(orders_df, customers_df, products_df):
     """

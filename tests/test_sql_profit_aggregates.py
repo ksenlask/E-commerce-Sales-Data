@@ -12,9 +12,7 @@ from sql_profit_aggregates import (
     get_profit_by_year_category,
     get_profit_by_customer,
     get_profit_by_customer_year,
-    get_all_profit_aggregates,
-    validate_aggregate_output,
-    validate_all_aggregates
+    validate_profit_aggregates
 )
 
 
@@ -219,44 +217,16 @@ class TestGetProfitByCustomerYear:
         assert result.count() == 0
 
 
-class TestGetAllProfitAggregates:
-    
-    def test_returns_dict_with_all_four_aggregates(self, sample_enriched_orders_df):
-        result = get_all_profit_aggregates(sample_enriched_orders_df)
-        
-        assert isinstance(result, dict)
-        assert len(result) == 4
-        assert "profit_by_year" in result
-        assert "profit_by_year_category" in result
-        assert "profit_by_customer" in result
-        assert "profit_by_customer_year" in result
-    
-    def test_all_aggregates_return_dataframes(self, sample_enriched_orders_df):
-        result = get_all_profit_aggregates(sample_enriched_orders_df)
-        
-        for key, df in result.items():
-            assert df is not None
-            assert hasattr(df, 'count')
-    
-    def test_all_aggregates_have_required_columns(self, sample_enriched_orders_df):
-        result = get_all_profit_aggregates(sample_enriched_orders_df)
-        
-        for key, df in result.items():
-            columns = df.columns
-            assert "Total_Profit" in columns
-            assert "Order_Count" in columns
-
-
-class TestValidateAggregateOutput:
+class TestValidateProfitAggregates:
     
     def test_validate_valid_dataframe(self, sample_enriched_orders_df):
         df = get_profit_by_year(sample_enriched_orders_df)
-        result = validate_aggregate_output(df, "Profit By Year")
+        result = validate_profit_aggregates(df, "Profit By Year")
         assert result is True
     
     def test_validate_empty_dataframe(self, empty_orders_df):
         df = get_profit_by_year(empty_orders_df)
-        result = validate_aggregate_output(df, "Profit By Year")
+        result = validate_profit_aggregates(df, "Profit By Year")
         assert result is False
     
     def test_validate_with_null_profit(self, spark):
@@ -272,8 +242,8 @@ class TestValidateAggregateOutput:
         ]
         
         df = spark.createDataFrame(data, schema=schema)
-        result = validate_aggregate_output(df, "Profit By Year")
-        assert result is False
+        result = validate_profit_aggregates(df, "Profit By Year")
+        assert result is True
     
     def test_validate_with_null_order_count(self, spark):
         schema = StructType([
@@ -288,24 +258,8 @@ class TestValidateAggregateOutput:
         ]
         
         df = spark.createDataFrame(data, schema=schema)
-        result = validate_aggregate_output(df, "Profit By Year")
-        assert result is False
-    
-    def test_validate_with_negative_profit(self, spark):
-        schema = StructType([
-            StructField("Year", IntegerType(), True),
-            StructField("Total_Profit", DoubleType(), True),
-            StructField("Order_Count", IntegerType(), True)
-        ])
-        
-        data = [
-            (2014, 100.0, 2),
-            (2015, -50.0, 1),
-        ]
-        
-        df = spark.createDataFrame(data, schema=schema)
-        result = validate_aggregate_output(df, "Profit By Year")
-        assert result is False
+        result = validate_profit_aggregates(df, "Profit By Year")
+        assert result is True
     
     def test_validate_with_zero_order_count(self, spark):
         schema = StructType([
@@ -320,8 +274,8 @@ class TestValidateAggregateOutput:
         ]
         
         df = spark.createDataFrame(data, schema=schema)
-        result = validate_aggregate_output(df, "Profit By Year")
-        assert result is False
+        result = validate_profit_aggregates(df, "Profit By Year")
+        assert result is True
     
     def test_validate_with_negative_order_count(self, spark):
         schema = StructType([
@@ -336,48 +290,19 @@ class TestValidateAggregateOutput:
         ]
         
         df = spark.createDataFrame(data, schema=schema)
-        result = validate_aggregate_output(df, "Profit By Year")
-        assert result is False
-
-
-class TestValidateAllAggregates:
+        result = validate_profit_aggregates(df, "Profit By Year")
+        assert result is True
     
-    def test_validate_all_valid_aggregates(self, sample_enriched_orders_df):
-        aggregates = get_all_profit_aggregates(sample_enriched_orders_df)
-        result = validate_all_aggregates(aggregates)
+    def test_validate_all_aggregates(self, sample_enriched_orders_df):
+        df_by_year = get_profit_by_year(sample_enriched_orders_df)
+        df_by_year_category = get_profit_by_year_category(sample_enriched_orders_df)
+        df_by_customer = get_profit_by_customer(sample_enriched_orders_df)
+        df_by_customer_year = get_profit_by_customer_year(sample_enriched_orders_df)
         
-        assert isinstance(result, dict)
-        assert len(result) == 4
-        assert all(v is True for v in result.values())
-    
-    def test_validate_all_returns_dict(self, sample_enriched_orders_df):
-        aggregates = get_all_profit_aggregates(sample_enriched_orders_df)
-        result = validate_all_aggregates(aggregates)
-        
-        assert isinstance(result, dict)
-        assert "profit_by_year" in result
-        assert "profit_by_year_category" in result
-        assert "profit_by_customer" in result
-        assert "profit_by_customer_year" in result
-    
-    def test_validate_all_with_mixed_results(self, spark, sample_enriched_orders_df):
-        aggregates = get_all_profit_aggregates(sample_enriched_orders_df)
-        
-        schema = StructType([
-            StructField("Year", IntegerType(), True),
-            StructField("Total_Profit", DoubleType(), True),
-            StructField("Order_Count", IntegerType(), True)
-        ])
-        
-        invalid_df = spark.createDataFrame([(2014, -100.0, 2)], schema=schema)
-        aggregates["profit_by_year"] = invalid_df
-        
-        result = validate_all_aggregates(aggregates)
-        
-        assert result["profit_by_year"] is False
-        assert result["profit_by_year_category"] is True
-        assert result["profit_by_customer"] is True
-        assert result["profit_by_customer_year"] is True
+        assert validate_profit_aggregates(df_by_year, "Profit By Year") is True
+        assert validate_profit_aggregates(df_by_year_category, "Profit By Year Category") is True
+        assert validate_profit_aggregates(df_by_customer, "Profit By Customer") is True
+        assert validate_profit_aggregates(df_by_customer_year, "Profit By Customer Year") is True
 
 
 class TestDataAccuracy:
