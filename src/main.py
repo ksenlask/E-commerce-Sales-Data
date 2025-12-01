@@ -22,8 +22,11 @@ from load_profit_summary import (
     validate_profit_summary_table,
 )
 from sql_profit_aggregates import (
-    get_all_profit_aggregates,
-    validate_all_aggregates,
+    get_profit_by_year,
+    get_profit_by_year_category,
+    get_profit_by_customer,
+    get_profit_by_customer_year,
+    validate_profit_aggregates,
 )
 
 from pyspark.sql.types import StructType, StructField, StringType
@@ -129,25 +132,31 @@ def main():
     # ============================================================================
     print("\n=== SQL Profit Aggregates Started ===")
 
-    # Generate all four profit aggregates
-    aggregates = get_all_profit_aggregates(enriched_orders_df)
+    # Generate profit aggregates using SQL
+    profit_by_year = get_profit_by_year(enriched_orders_df)
+    profit_by_year_category = get_profit_by_year_category(enriched_orders_df)
+    profit_by_customer = get_profit_by_customer(enriched_orders_df)
+    profit_by_customer_year = get_profit_by_customer_year(enriched_orders_df)
 
     # Display aggregates
     print("\n--- Profit by Year ---")
-    aggregates['profit_by_year'].show()
+    profit_by_year.show()
 
     print("\n--- Profit by Year + Category ---")
-    aggregates['profit_by_year_category'].show()
+    profit_by_year_category.show()
 
     print("\n--- Profit by Customer (Top 10) ---")
-    aggregates['profit_by_customer'].limit(10).show()
+    profit_by_customer.limit(10).show()
 
     print("\n--- Profit by Customer + Year (Sample) ---")
-    aggregates['profit_by_customer_year'].limit(10).show()
+    profit_by_customer_year.limit(10).show()
 
     # Validate aggregates
     print("\n--- Validating Aggregates ---")
-    validation_results = validate_all_aggregates(aggregates)
+    validate_profit_aggregates(profit_by_year, "Profit by Year")
+    validate_profit_aggregates(profit_by_year_category, "Profit by Year + Category")
+    validate_profit_aggregates(profit_by_customer, "Profit by Customer")
+    validate_profit_aggregates(profit_by_customer_year, "Profit by Customer + Year")
 
     print("\n=== SQL Profit Aggregates Completed ===")
 

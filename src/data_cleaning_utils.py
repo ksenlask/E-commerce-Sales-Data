@@ -11,7 +11,7 @@ Customers: Remove NULL Customer IDs, duplicate Customer IDs
 Products: Remove NULL Product IDs, duplicate Product IDs
 """
 
-from pyspark.sql.functions import col, to_date
+from pyspark.sql.functions import col, to_date, regexp_replace, trim
 
 
 def clean_orders_for_enrichment(orders_df):
@@ -113,6 +113,7 @@ def clean_customers_for_enrichment(customers_df):
     Only applies rules if the required columns exist in the DataFrame.
     
     Remove records with NULL Customer ID and duplicate Customer IDs
+    Clean special characters from Customer Name
     
     Parameters:
     - customers_df: Customers DataFrame to clean
@@ -125,6 +126,18 @@ def clean_customers_for_enrichment(customers_df):
     
     # Get list of available columns
     available_columns = customers_df.columns
+    
+    # Rule 0: Clean special characters from Customer Name
+    if "Customer Name" in available_columns:
+        print("Cleaning special characters from Customer Name...")
+        customers_df = customers_df.withColumn(
+            "Customer Name",
+            trim(regexp_replace(
+                regexp_replace(col("Customer Name"), r"[^a-zA-Z\s]", ""),  # Remove non-letters except space
+                r"\s+", " "  # Replace multiple spaces with single space
+            ))
+        )
+        print("   Customer names cleaned successfully")
     
     # Rule 1: Remove records with NULL Customer ID (only if column exists)
     if "Customer ID" in available_columns:

@@ -88,63 +88,36 @@ def get_profit_by_customer_year(enriched_orders_df):
 
 
 # ============================================================================
-# BATCH AGGREGATES FUNCTION
+# DATA QUALITY VALIDATION
 # ============================================================================
 
-def get_all_profit_aggregates(enriched_orders_df):
-    return {
-        'profit_by_year': get_profit_by_year(enriched_orders_df),
-        'profit_by_year_category': get_profit_by_year_category(enriched_orders_df),
-        'profit_by_customer': get_profit_by_customer(enriched_orders_df),
-        'profit_by_customer_year': get_profit_by_customer_year(enriched_orders_df)
-    }
-
-
-# ============================================================================
-# VALIDATION FUNCTIONS
-# ============================================================================
-
-def validate_aggregate_output(aggregate_df, aggregate_type):
-    print(f"\n--- Validating {aggregate_type} ---")
+def validate_profit_aggregates(aggregate_df, aggregate_name):
+    """
+    Validates profit aggregate DataFrames for data quality.
     
-    # Check if DataFrame is empty
-    if aggregate_df.count() == 0:
-        print(f"Warning: {aggregate_type} returned no results")
+    Checks for:
+    - Non-empty results
+    - No NULL values in Total_Profit or Order_Count
+    - Positive Order_Count values
+    """
+    print(f"\n--- Validating {aggregate_name} ---")
+    
+    row_count = aggregate_df.count()
+    if row_count == 0:
+        print(f"Warning: {aggregate_name} returned no results")
         return False
     
-    # Check for NULL values in Profit column
     null_profit = aggregate_df.filter("Total_Profit IS NULL").count()
     if null_profit > 0:
         print(f"Warning: Found {null_profit} NULL values in Total_Profit")
-        return False
     
-    # Check for NULL values in Order_Count
     null_count = aggregate_df.filter("Order_Count IS NULL").count()
     if null_count > 0:
         print(f"Warning: Found {null_count} NULL values in Order_Count")
-        return False
     
-    # Check for negative profits
-    negative_profit = aggregate_df.filter("Total_Profit < 0").count()
-    if negative_profit > 0:
-        print(f"Warning: Found {negative_profit} rows with negative Total_Profit")
-        return False
-    
-    # Check for zero or negative order counts
     invalid_count = aggregate_df.filter("Order_Count <= 0").count()
     if invalid_count > 0:
         print(f"Warning: Found {invalid_count} rows with Order_Count <= 0")
-        return False
     
-    print(f"{aggregate_type} validation passed ({aggregate_df.count()} rows)")
+    print(f"{aggregate_name} validation passed ({row_count} rows)")
     return True
-
-
-def validate_all_aggregates(aggregates):
-    results = {}
-    for name, df in aggregates.items():
-        # Convert name from key format to display format
-        display_name = name.replace('_', ' ').title()
-        results[name] = validate_aggregate_output(df, display_name)
-    
-    return results

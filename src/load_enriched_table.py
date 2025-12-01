@@ -1,7 +1,7 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, sum, count, avg, max, min, datediff, when, lit, percentile_approx, dense_rank, expr, current_date, lag, countDistinct, ntile
 from pyspark.sql.window import Window
-from data_cleaning_utils import clean_orders_for_enrichment, clean_customers_for_enrichment, clean_products_for_enrichment
+from src.data_cleaning_utils import clean_orders_for_enrichment, clean_customers_for_enrichment, clean_products_for_enrichment
 
 
 
